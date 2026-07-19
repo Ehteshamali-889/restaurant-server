@@ -18,6 +18,7 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/tables', require('./routes/tables'));
 app.use('/api/orders', require('./routes/orders'));
+app.use('/api/reservations', require('./routes/reservations'));
 
 app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'Restaurant Server is running' });
