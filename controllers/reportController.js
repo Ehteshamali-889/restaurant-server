@@ -66,6 +66,39 @@ const getReservationReport = async (req, res) => {
   }
 };
 
+const getProfitabilityReport = async (req, res) => {
+  try {
+    const { startDate, endDate, branch } = req.query;
+    const branchId = branch || req.user.branch || null;
+    const report = await reportService.getProfitabilityReport({ startDate, endDate, branch: branchId });
+    res.status(200).json({ success: true, data: report });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const getPayrollSummary = async (req, res) => {
+  try {
+    const { startDate, endDate, branch } = req.query;
+    const branchId = branch || req.user.branch || null;
+    const report = await reportService.getPayrollSummary({ startDate, endDate, branch: branchId });
+    res.status(200).json({ success: true, data: report });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+const getSalesTrends = async (req, res) => {
+  try {
+    const { startDate, endDate, branch } = req.query;
+    const branchId = branch || req.user.branch || null;
+    const report = await reportService.getSalesTrends({ startDate, endDate, branch: branchId });
+    res.status(200).json({ success: true, data: report });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getDailySalesReport,
   getPaymentSummary,
@@ -73,4 +106,7 @@ module.exports = {
   getInventoryReport,
   getRevenueReport,
   getReservationReport,
+  getProfitabilityReport,
+  getPayrollSummary,
+  getSalesTrends,
 };
