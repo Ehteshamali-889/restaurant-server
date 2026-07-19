@@ -40,4 +40,13 @@ const getMe = async (req, res) => {
   }
 };
 
-module.exports = { login, getMe };
+const getUsers = async (req, res) => {
+  try {
+    const users = await authService.getUsersByRole(req.query.role);
+    res.status(200).json({ success: true, data: users });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+module.exports = { login, getMe, getUsers };

@@ -47,4 +47,10 @@ const getMe = async (userId) => {
   return user;
 };
 
-module.exports = { login, getMe };
+const getUsersByRole = async (role) => {
+  const query = {};
+  if (role) query.role = role;
+  return User.find(query).select('fullName username role branch isActive');
+};
+
+module.exports = { login, getMe, getUsersByRole };

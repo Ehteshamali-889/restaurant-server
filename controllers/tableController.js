@@ -38,7 +38,7 @@ const getTableById = async (req, res) => {
 
 const createTable = async (req, res) => {
   try {
-    const table = await tableService.createTable(req.body);
+    const table = await tableService.createTable({ ...req.body, branch: req.user.branch });
     res.status(201).json({ success: true, data: table });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
