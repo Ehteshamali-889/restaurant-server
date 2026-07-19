@@ -1,8 +1,31 @@
 const MenuItem = require('../models/MenuItem');
 const Category = require('../models/Category');
+const Modifier = require('../models/Modifier');
 
-const getCategories = async () => {
-  return Category.find({ isActive: true }).sort({ displayOrder: 1 });
+const getCategories = async (includeInactive = false) => {
+  const filter = includeInactive ? {} : { isActive: true };
+  return Category.find(filter).sort({ displayOrder: 1 });
+};
+
+const getCategoryById = async (id) => {
+  return Category.findById(id);
+};
+
+const createCategory = async (data) => {
+  const category = await Category.create(data);
+  return category;
+};
+
+const updateCategory = async (id, data) => {
+  return Category.findByIdAndUpdate(id, data, { new: true, runValidators: true });
+};
+
+const deleteCategory = async (id) => {
+  const itemCount = await MenuItem.countDocuments({ category: id });
+  if (itemCount > 0) {
+    throw new Error(`Cannot delete category: ${itemCount} menu item(s) still reference it`);
+  }
+  return Category.findByIdAndDelete(id);
 };
 
 const getMenuItems = async (filters = {}) => {
@@ -20,4 +43,65 @@ const getMenuItemById = async (id) => {
   return MenuItem.findById(id).populate('category', 'name');
 };
 
-module.exports = { getCategories, getMenuItems, getMenuItemById };
+const createMenuItem = async (data) => {
+  const item = await MenuItem.create(data);
+  return item.populate('category', 'name');
+};
+
+const updateMenuItem = async (id, data) => {
+  return MenuItem.findByIdAndUpdate(id, data, { new: true, runValidators: true }).populate('category', 'name');
+};
+
+const deleteMenuItem = async (id) => {
+  return MenuItem.findByIdAndDelete(id);
+};
+
+const toggleAvailability = async (id) => {
+  const item = await MenuItem.findById(id);
+  if (!item) throw new Error('Menu item not found');
+  item.isAvailable = !item.isAvailable;
+  await item.save();
+  return item.populate('category', 'name');
+};
+
+const getModifiers = async (filters = {}) => {
+  const query = {};
+  if (filters.branch) query.branch = filters.branch;
+  if (filters.group) query.group = filters.group;
+  return Modifier.find(query).sort({ group: 1, name: 1 });
+};
+
+const getModifierById = async (id) => {
+  return Modifier.findById(id);
+};
+
+const createModifier = async (data) => {
+  return Modifier.create(data);
+};
+
+const updateModifier = async (id, data) => {
+  return Modifier.findByIdAndUpdate(id, data, { new: true, runValidators: true });
+};
+
+const deleteModifier = async (id) => {
+  return Modifier.findByIdAndDelete(id);
+};
+
+module.exports = {
+  getCategories,
+  getCategoryById,
+  createCategory,
+  updateCategory,
+  deleteCategory,
+  getMenuItems,
+  getMenuItemById,
+  createMenuItem,
+  updateMenuItem,
+  deleteMenuItem,
+  toggleAvailability,
+  getModifiers,
+  getModifierById,
+  createModifier,
+  updateModifier,
+  deleteModifier,
+};
