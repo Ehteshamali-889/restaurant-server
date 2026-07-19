@@ -41,6 +41,9 @@ const createTable = async (req, res) => {
     const table = await tableService.createTable({ ...req.body, branch: req.user.branch });
     res.status(201).json({ success: true, data: table });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ success: false, message: `Une table avec le numéro ${req.body.number} existe déjà` });
+    }
     res.status(400).json({ success: false, message: error.message });
   }
 };
@@ -53,6 +56,9 @@ const updateTable = async (req, res) => {
     }
     res.status(200).json({ success: true, data: table });
   } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ success: false, message: `Une table avec le numéro ${req.body.number} existe déjà` });
+    }
     res.status(400).json({ success: false, message: error.message });
   }
 };
