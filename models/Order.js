@@ -93,6 +93,23 @@ const orderSchema = new mongoose.Schema(
       enum: ['open', 'confirmed', 'preparing', 'ready', 'served', 'closed', 'cancelled'],
       default: 'open',
     },
+    paidAmount: {
+      type: Number,
+      default: 0,
+    },
+    payments: [
+      {
+        method: {
+          type: String,
+          enum: ['cash', 'card', 'orange_money', 'mtn_money'],
+        },
+        amount: Number,
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
     notes: String,
     branch: {
       type: mongoose.Schema.Types.ObjectId,
