@@ -6,6 +6,7 @@ const Category = require('./models/Category');
 const Table = require('./models/Table');
 const MenuItem = require('./models/MenuItem');
 const StockItem = require('./models/StockItem');
+const Supplier = require('./models/Supplier');
 const Branch = require('./models/Branch');
 const Order = require('./models/Order');
 
@@ -21,6 +22,7 @@ const seed = async () => {
     await Table.deleteMany();
     await MenuItem.deleteMany();
     await StockItem.deleteMany();
+    await Supplier.deleteMany();
     await Branch.deleteMany();
     await Order.deleteMany();
 
@@ -56,12 +58,20 @@ const seed = async () => {
     }
     await Table.insertMany(tables);
 
+    const suppliers = await Supplier.insertMany([
+      { name: 'Marche Mboppi', contactPerson: 'Jean Mboppi', phone: '+237 690 111 222', email: 'mboppi@email.com', products: ['Legumes', 'Epices', 'Fruits'], branch: branch._id },
+      { name: 'Sotrac Alimentaire', contactPerson: 'Paul Sotrac', phone: '+237 677 333 444', email: 'sotrac@email.com', products: ['Huile', 'Cereales', 'Conserves'], branch: branch._id },
+      { name: 'Volaille Littoral', contactPerson: 'Marie Littoral', phone: '+237 655 555 666', email: 'volaille@email.com', products: ['Poulet', 'Dinde', 'Oeufs'], branch: branch._id },
+      { name: 'Laiterie du Cameroun', contactPerson: 'Pierre Laitier', phone: '+237 680 777 888', email: 'laiterie@email.com', products: ['Fromage', 'Lait', 'Yaourt'], branch: branch._id },
+      { name: 'Source Tangui', contactPerson: 'Paul Tangui', phone: '+237 691 999 000', email: 'source@email.com', products: ['Eau', 'Boissons'], branch: branch._id },
+    ]);
+
     const stockItems = await StockItem.insertMany([
-      { name: 'Rice', category: 'food_ingredient', quantity: 50, unit: 'kg', reorderLevel: 10, costPerUnit: 500, branch: branch._id },
-      { name: 'Chicken', category: 'food_ingredient', quantity: 20, unit: 'kg', reorderLevel: 5, costPerUnit: 2000, branch: branch._id },
-      { name: 'Cooking Oil', category: 'food_ingredient', quantity: 15, unit: 'l', reorderLevel: 3, costPerUnit: 1500, branch: branch._id },
-      { name: 'Coca Cola', category: 'beverage', quantity: 2, unit: 'bottles', reorderLevel: 5, costPerUnit: 500, branch: branch._id },
-      { name: 'Water', category: 'beverage', quantity: 30, unit: 'bottles', reorderLevel: 10, costPerUnit: 200, branch: branch._id },
+      { name: 'Rice', category: 'food_ingredient', quantity: 50, unit: 'kg', reorderLevel: 10, costPerUnit: 500, supplier: suppliers[1]._id, branch: branch._id },
+      { name: 'Chicken', category: 'food_ingredient', quantity: 20, unit: 'kg', reorderLevel: 5, costPerUnit: 2000, supplier: suppliers[2]._id, branch: branch._id },
+      { name: 'Cooking Oil', category: 'food_ingredient', quantity: 15, unit: 'l', reorderLevel: 3, costPerUnit: 1500, supplier: suppliers[1]._id, branch: branch._id },
+      { name: 'Coca Cola', category: 'beverage', quantity: 2, unit: 'bottles', reorderLevel: 5, costPerUnit: 500, supplier: suppliers[4]._id, branch: branch._id },
+      { name: 'Water', category: 'beverage', quantity: 30, unit: 'bottles', reorderLevel: 10, costPerUnit: 200, supplier: suppliers[4]._id, branch: branch._id },
     ]);
 
     await MenuItem.insertMany([
