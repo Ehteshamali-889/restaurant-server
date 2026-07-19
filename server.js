@@ -24,6 +24,7 @@ app.use('/api/categories', require('./routes/categories'));
 app.use('/api/modifiers', require('./routes/modifiers'));
 app.use('/api/stock', require('./routes/stock'));
 app.use('/api/suppliers', require('./routes/suppliers'));
+app.use('/api/reports', require('./routes/reports'));
 
 app.get('/', (req, res) => {
   res.json({ status: 'ok', message: 'Restaurant Server is running' });
