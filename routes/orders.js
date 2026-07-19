@@ -1,5 +1,5 @@
 const express = require('express');
-const { protect } = require('../middleware/auth');
+const { protect, authorize } = require('../middleware/auth');
 const {
   getOrders,
   getActiveOrders,
@@ -14,6 +14,9 @@ const {
   processPayment,
   splitPayment,
   getReceiptData,
+  cancelOrder,
+  voidOrder,
+  processRefund,
 } = require('../controllers/orderController');
 
 const router = express.Router();
@@ -33,5 +36,8 @@ router.put('/:id/status', updateStatus);
 router.post('/:id/payment', processPayment);
 router.post('/:id/split-payment', splitPayment);
 router.get('/:id/receipt', getReceiptData);
+router.put('/:id/cancel', authorize('admin', 'manager'), cancelOrder);
+router.put('/:id/void', authorize('admin', 'manager'), voidOrder);
+router.post('/:id/refund', authorize('admin', 'manager'), processRefund);
 
 module.exports = router;

@@ -7,10 +7,17 @@ const getOrders = async (req, res) => {
       status: req.query.status,
       table: req.query.table,
       waiter: req.query.waiter,
+      paymentMethod: req.query.paymentMethod,
+      paymentStatus: req.query.paymentStatus,
+      dateFrom: req.query.dateFrom,
+      dateTo: req.query.dateTo,
       date: req.query.date,
+      search: req.query.search,
+      page: req.query.page,
+      limit: req.query.limit,
     };
-    const orders = await orderService.getOrders(filters);
-    res.status(200).json({ success: true, data: orders });
+    const result = await orderService.getOrders(filters);
+    res.status(200).json({ success: true, data: result.orders, pagination: result.pagination });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -151,6 +158,40 @@ const getReceiptData = async (req, res) => {
   }
 };
 
+const cancelOrder = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const order = await orderService.cancelOrder(req.params.id, reason, req.user._id);
+    res.status(200).json({ success: true, data: order });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+const voidOrder = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const order = await orderService.voidOrder(req.params.id, reason, req.user._id);
+    res.status(200).json({ success: true, data: order });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
+const processRefund = async (req, res) => {
+  try {
+    const { amount, reason, method } = req.body;
+    const order = await orderService.processRefund(
+      req.params.id,
+      { amount, reason, method },
+      req.user._id
+    );
+    res.status(200).json({ success: true, data: order });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
+  }
+};
+
 module.exports = {
   getOrders,
   getActiveOrders,
@@ -165,4 +206,7 @@ module.exports = {
   processPayment,
   splitPayment,
   getReceiptData,
+  cancelOrder,
+  voidOrder,
+  processRefund,
 };

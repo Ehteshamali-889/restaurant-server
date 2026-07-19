@@ -115,6 +115,38 @@ const orderSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Branch',
     },
+    cancelReason: String,
+    cancelledBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+    },
+    cancelledAt: Date,
+    refunds: [
+      {
+        amount: {
+          type: Number,
+          required: true,
+        },
+        reason: {
+          type: String,
+          required: true,
+        },
+        method: {
+          type: String,
+          enum: ['cash', 'card', 'orange_money', 'mtn_money'],
+          required: true,
+        },
+        processedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'User',
+          required: true,
+        },
+        createdAt: {
+          type: Date,
+          default: Date.now,
+        },
+      },
+    ],
     closedAt: Date,
   },
   { timestamps: true }

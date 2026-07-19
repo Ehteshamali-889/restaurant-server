@@ -43,7 +43,22 @@ const getOrders = async (filters = {}) => {
   if (filters.status) query.status = filters.status;
   if (filters.table) query.table = filters.table;
   if (filters.waiter) query.waiter = filters.waiter;
-  if (filters.date) {
+  if (filters.paymentMethod) query.paymentMethod = filters.paymentMethod;
+  if (filters.paymentStatus) query.paymentStatus = filters.paymentStatus;
+
+  if (filters.dateFrom || filters.dateTo) {
+    query.createdAt = {};
+    if (filters.dateFrom) {
+      const start = new Date(filters.dateFrom);
+      start.setHours(0, 0, 0, 0);
+      query.createdAt.$gte = start;
+    }
+    if (filters.dateTo) {
+      const end = new Date(filters.dateTo);
+      end.setHours(23, 59, 59, 999);
+      query.createdAt.$lte = end;
+    }
+  } else if (filters.date) {
     const start = new Date(filters.date);
     start.setHours(0, 0, 0, 0);
     const end = new Date(start);
@@ -51,12 +66,36 @@ const getOrders = async (filters = {}) => {
     query.createdAt = { $gte: start, $lt: end };
   }
 
-  return Order.find(query)
-    .populate('table', 'number section')
-    .populate('waiter', 'fullName')
-    .populate('cashier', 'fullName')
-    .populate('items.menuItem', 'name category')
-    .sort({ createdAt: -1 });
+  if (filters.search) {
+    query.orderNumber = { $regex: filters.search, $options: 'i' };
+  }
+
+  const page = Math.max(1, parseInt(filters.page) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(filters.limit) || 20));
+  const skip = (page - 1) * limit;
+
+  const [orders, total] = await Promise.all([
+    Order.find(query)
+      .populate('table', 'number section')
+      .populate('waiter', 'fullName')
+      .populate('cashier', 'fullName')
+      .populate('items.menuItem', 'name category')
+      .populate('cancelledBy', 'fullName')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    Order.countDocuments(query),
+  ]);
+
+  return {
+    orders,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
+    },
+  };
 };
 
 const getActiveOrders = async (branchId) => {
@@ -78,7 +117,9 @@ const getOrderById = async (id) => {
     .populate('waiter', 'fullName username')
     .populate('cashier', 'fullName username')
     .populate('items.menuItem', 'name price image category')
-    .populate('branch', 'name taxRate currency');
+    .populate('branch', 'name taxRate currency')
+    .populate('cancelledBy', 'fullName username')
+    .populate('refunds.processedBy', 'fullName username');
 };
 
 const createOrder = async (data) => {
@@ -381,6 +422,134 @@ const getReceiptData = async (orderId) => {
   };
 };
 
+const cancelOrder = async (orderId, reason, userId) => {
+  if (!reason || !reason.trim()) {
+    throw new Error('Cancel reason is required');
+  }
+
+  const order = await Order.findById(orderId);
+  if (!order) throw new Error('Order not found');
+
+  if (['closed', 'cancelled'].includes(order.status)) {
+    throw new Error(`Cannot cancel an order with status "${order.status}"`);
+  }
+
+  if (order.paymentStatus === 'paid') {
+    throw new Error('Cannot cancel a paid order. Use void or refund instead.');
+  }
+
+  order.status = 'cancelled';
+  order.cancelReason = reason.trim();
+  order.cancelledBy = userId;
+  order.cancelledAt = new Date();
+  order.closedAt = new Date();
+
+  if (order.table) {
+    await Table.findByIdAndUpdate(order.table, {
+      status: 'available',
+      currentOrder: null,
+    });
+  }
+
+  await order.save();
+  return Order.findById(order._id)
+    .populate('table', 'number section')
+    .populate('waiter', 'fullName')
+    .populate('cancelledBy', 'fullName')
+    .populate('items.menuItem', 'name price');
+};
+
+const voidOrder = async (orderId, reason, userId) => {
+  if (!reason || !reason.trim()) {
+    throw new Error('Void reason is required');
+  }
+
+  const order = await Order.findById(orderId);
+  if (!order) throw new Error('Order not found');
+
+  if (order.status === 'cancelled') {
+    throw new Error('Order is already cancelled');
+  }
+
+  order.status = 'cancelled';
+  order.cancelReason = `[VOID] ${reason.trim()}`;
+  order.cancelledBy = userId;
+  order.cancelledAt = new Date();
+  order.closedAt = order.closedAt || new Date();
+
+  if (order.paymentStatus === 'paid') {
+    order.paymentStatus = 'refunded';
+  }
+
+  if (order.table) {
+    await Table.findByIdAndUpdate(order.table, {
+      status: 'available',
+      currentOrder: null,
+    });
+  }
+
+  await order.save();
+  return Order.findById(order._id)
+    .populate('table', 'number section')
+    .populate('waiter', 'fullName')
+    .populate('cancelledBy', 'fullName')
+    .populate('items.menuItem', 'name price');
+};
+
+const processRefund = async (orderId, { amount, reason, method }, userId) => {
+  if (!amount || amount <= 0) {
+    throw new Error('Refund amount must be greater than 0');
+  }
+  if (!reason || !reason.trim()) {
+    throw new Error('Refund reason is required');
+  }
+  if (!['cash', 'card', 'orange_money', 'mtn_money'].includes(method)) {
+    throw new Error('Invalid refund method');
+  }
+
+  const order = await Order.findById(orderId);
+  if (!order) throw new Error('Order not found');
+
+  if (order.paymentStatus !== 'paid' && order.paymentStatus !== 'partial') {
+    throw new Error(`Cannot refund an order with payment status "${order.paymentStatus}"`);
+  }
+
+  const totalRefunded = (order.refunds || []).reduce((sum, r) => sum + r.amount, 0);
+  const remaining = order.total - totalRefunded;
+
+  if (amount > remaining) {
+    throw new Error(`Refund amount (${amount}) exceeds remaining refundable amount (${remaining})`);
+  }
+
+  order.refunds.push({
+    amount,
+    reason: reason.trim(),
+    method,
+    processedBy: userId,
+    createdAt: new Date(),
+  });
+
+  const newTotalRefunded = totalRefunded + amount;
+  if (newTotalRefunded >= order.total) {
+    order.paymentStatus = 'refunded';
+  } else {
+    order.paymentStatus = 'partial';
+  }
+
+  if (order.status !== 'cancelled') {
+    order.status = 'closed';
+    order.closedAt = order.closedAt || new Date();
+  }
+
+  await order.save();
+  return Order.findById(order._id)
+    .populate('table', 'number section')
+    .populate('waiter', 'fullName')
+    .populate('cancelledBy', 'fullName')
+    .populate('refunds.processedBy', 'fullName')
+    .populate('items.menuItem', 'name price');
+};
+
 module.exports = {
   getOrders,
   getActiveOrders,
@@ -395,4 +564,7 @@ module.exports = {
   processPayment,
   splitPayment,
   getReceiptData,
+  cancelOrder,
+  voidOrder,
+  processRefund,
 };
