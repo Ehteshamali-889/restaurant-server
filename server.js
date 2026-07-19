@@ -17,6 +17,10 @@ app.use(morgan('dev'));
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'Restaurant Server is running' });
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
