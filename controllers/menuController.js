@@ -89,7 +89,7 @@ const getMenuItemById = async (req, res) => {
 
 const createMenuItem = async (req, res) => {
   try {
-    const item = await menuService.createMenuItem(req.body);
+    const item = await menuService.createMenuItem({ ...req.body, branch: req.user.branch });
     res.status(201).json({ success: true, data: item });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
