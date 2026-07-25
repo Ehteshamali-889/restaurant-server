@@ -59,7 +59,7 @@ const getReservations = async (filters = {}) => {
   };
 };
 
-const getTodayReservations = async (branchId) => {
+const getTodayReservations = async (branchId, filters = {}) => {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const tomorrow = new Date(today);
@@ -70,11 +70,30 @@ const getTodayReservations = async (branchId) => {
   };
   if (branchId) query.branch = branchId;
 
-  return Reservation.find(query)
-    .populate('table', 'number section capacity')
-    .populate('branch', 'name')
-    .populate('createdBy', 'fullName')
-    .sort({ time: 1 });
+  const page = Math.max(1, parseInt(filters.page) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(filters.limit) || 50));
+  const skip = (page - 1) * limit;
+
+  const [reservations, total] = await Promise.all([
+    Reservation.find(query)
+      .populate('table', 'number section capacity')
+      .populate('branch', 'name')
+      .populate('createdBy', 'fullName')
+      .sort({ time: 1 })
+      .skip(skip)
+      .limit(limit),
+    Reservation.countDocuments(query),
+  ]);
+
+  return {
+    reservations,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
+    },
+  };
 };
 
 const getReservationById = async (id) => {

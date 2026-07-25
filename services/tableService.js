@@ -6,10 +6,29 @@ const getTables = async (filters = {}) => {
   if (filters.section) query.section = filters.section;
   if (filters.status) query.status = filters.status;
 
-  return Table.find(query)
-    .populate('currentOrder', 'orderNumber total status items')
-    .populate('assignedWaiter', 'fullName')
-    .sort({ number: 1 });
+  const page = Math.max(1, parseInt(filters.page) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(filters.limit) || 50));
+  const skip = (page - 1) * limit;
+
+  const [tables, total] = await Promise.all([
+    Table.find(query)
+      .populate('currentOrder', 'orderNumber total status items')
+      .populate('assignedWaiter', 'fullName')
+      .sort({ number: 1 })
+      .skip(skip)
+      .limit(limit),
+    Table.countDocuments(query),
+  ]);
+
+  return {
+    tables,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
+    },
+  };
 };
 
 const getTableStats = async (branchId) => {

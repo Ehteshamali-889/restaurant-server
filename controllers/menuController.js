@@ -67,9 +67,12 @@ const getMenuItems = async (req, res) => {
       category: req.query.category,
       branch: req.query.branch || req.user.branch,
       isAvailable: req.query.isAvailable !== undefined ? req.query.isAvailable === 'true' : undefined,
+      search: req.query.search,
+      page: req.query.page,
+      limit: req.query.limit,
     };
-    const items = await menuService.getMenuItems(filters);
-    res.status(200).json({ success: true, data: items });
+    const result = await menuService.getMenuItems(filters);
+    res.status(200).json({ success: true, data: result.items, pagination: result.pagination });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

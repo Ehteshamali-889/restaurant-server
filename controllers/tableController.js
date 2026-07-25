@@ -6,9 +6,11 @@ const getTables = async (req, res) => {
       branch: req.query.branch || req.user.branch,
       section: req.query.section,
       status: req.query.status,
+      page: req.query.page,
+      limit: req.query.limit,
     };
-    const tables = await tableService.getTables(filters);
-    res.status(200).json({ success: true, data: tables });
+    const result = await tableService.getTables(filters);
+    res.status(200).json({ success: true, data: result.tables, pagination: result.pagination });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

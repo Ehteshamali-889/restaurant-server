@@ -26,8 +26,12 @@ const getOrders = async (req, res) => {
 const getActiveOrders = async (req, res) => {
   try {
     const branchId = req.query.branch || req.user.branch;
-    const orders = await orderService.getActiveOrders(branchId);
-    res.status(200).json({ success: true, data: orders });
+    const filters = {
+      page: req.query.page,
+      limit: req.query.limit,
+    };
+    const result = await orderService.getActiveOrders(branchId, filters);
+    res.status(200).json({ success: true, data: result.orders, pagination: result.pagination });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

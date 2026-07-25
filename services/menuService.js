@@ -33,10 +33,32 @@ const getMenuItems = async (filters = {}) => {
   if (filters.category) query.category = filters.category;
   if (filters.branch) query.branch = filters.branch;
   if (filters.isAvailable !== undefined) query.isAvailable = filters.isAvailable;
+  if (filters.search) {
+    query.name = { $regex: filters.search, $options: 'i' };
+  }
 
-  return MenuItem.find(query)
-    .populate('category', 'name')
-    .sort({ name: 1 });
+  const page = Math.max(1, parseInt(filters.page) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(filters.limit) || 20));
+  const skip = (page - 1) * limit;
+
+  const [items, total] = await Promise.all([
+    MenuItem.find(query)
+      .populate('category', 'name')
+      .sort({ name: 1 })
+      .skip(skip)
+      .limit(limit),
+    MenuItem.countDocuments(query),
+  ]);
+
+  return {
+    items,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
+    },
+  };
 };
 
 const getMenuItemById = async (id) => {

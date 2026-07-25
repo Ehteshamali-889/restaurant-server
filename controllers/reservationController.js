@@ -22,8 +22,12 @@ const getReservations = async (req, res) => {
 const getTodayReservations = async (req, res) => {
   try {
     const branchId = req.query.branch || req.user.branch;
-    const reservations = await reservationService.getTodayReservations(branchId);
-    res.status(200).json({ success: true, data: reservations });
+    const filters = {
+      page: req.query.page,
+      limit: req.query.limit,
+    };
+    const result = await reservationService.getTodayReservations(branchId, filters);
+    res.status(200).json({ success: true, data: result.reservations, pagination: result.pagination });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }

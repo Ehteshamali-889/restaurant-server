@@ -98,17 +98,36 @@ const getOrders = async (filters = {}) => {
   };
 };
 
-const getActiveOrders = async (branchId) => {
+const getActiveOrders = async (branchId, filters = {}) => {
   const query = {
     status: { $in: ['open', 'confirmed', 'preparing', 'ready', 'served'] },
   };
   if (branchId) query.branch = branchId;
 
-  return Order.find(query)
-    .populate('table', 'number section')
-    .populate('waiter', 'fullName')
-    .populate('items.menuItem', 'name')
-    .sort({ createdAt: -1 });
+  const page = Math.max(1, parseInt(filters.page) || 1);
+  const limit = Math.min(100, Math.max(1, parseInt(filters.limit) || 50));
+  const skip = (page - 1) * limit;
+
+  const [orders, total] = await Promise.all([
+    Order.find(query)
+      .populate('table', 'number section')
+      .populate('waiter', 'fullName')
+      .populate('items.menuItem', 'name')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit),
+    Order.countDocuments(query),
+  ]);
+
+  return {
+    orders,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
+    },
+  };
 };
 
 const getOrderById = async (id) => {
