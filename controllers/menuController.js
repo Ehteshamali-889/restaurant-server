@@ -156,7 +156,7 @@ const getModifierById = async (req, res) => {
 
 const createModifier = async (req, res) => {
   try {
-    const modifier = await menuService.createModifier(req.body);
+    const modifier = await menuService.createModifier({ ...req.body, branch: req.user.branch });
     res.status(201).json({ success: true, data: modifier });
   } catch (error) {
     if (error.code === 11000) {
